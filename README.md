@@ -35,8 +35,11 @@ Ana çalışma döngüsünde hiçbir bekleme komutu yoktur. LED'in her 500ms'de 
 * **Kullanıcı Butonu (Giriş):** `PA0` (veya ilgili `button_Pin`)
 * **Watchdog Saati:** Dahili LSI Osilatör (40 kHz)
 
-## 🚀 Kurulum ve Kullanım
-
-1. Bu projeyi bilgisayarınıza klonlayın:
-   ```bash
-   git clone [https://github.com/KULLANICI_ADINIZ/STM32-IWDG-Debounce-StateMachine.git](https://github.com/KULLANICI_ADINIZ/STM32-IWDG-Debounce-StateMachine.git)
+### 👨‍💻 Geliştirici / Developer
+<p align="center">
+  <b>Yavuz ÇANDIR</b>
+  <br>
+  <a href="https://github.com/YavuzCandirr" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-YavuzCandirr-black?logo=github" alt="GitHub">
+  </a>
+</p>
