@@ -6,16 +6,19 @@ Sistemde, işlemciyi kilitleyen `HAL_Delay()` fonksiyonu (başlangıç animasyon
 
 ## 🌟 Öne Çıkan Mühendislik Yaklaşımları
 
-### 1. Bağımsız Bekçi Köpeği (IWDG) ile Çökme Koruması
+### 1. Durum Makinesi ile Yazılımsal Debounce (Sıçrama Önleme)
+Mekanik butonların içindeki metal plakalar birbirine temas ederken mikrosaniyeler seviyesinde defalarca seker (bouncing). Bu elektriksel gürültüyü filtrelemek için sistemi kilitleyen `HAL_Delay()` kullanmak yerine, asenkron çalışan 3 aşamalı bir **Durum Makinesi (State Machine)** tasarlanmıştır:
+
+* **1. Aşama (`butona_basidimi`):** İşlemci butondan gelen ilk elektriksel "1" (High) sinyalini gördüğü an hemen işlem yapmaz. O anki zaman damgasını (`bsaniye = anliksan`) kaydeder ve beklemeye geçer.
+* **2. Aşama (`ne_kadar_basildi`):** Sistem tam 50 milisaniye (`bson = 50`) boyunca bekler. Bu süre, arkların (titremelerin) bitmesi için gereken filtredir. Süre dolduğunda butona tekrar bakılır:
+  * Sinyal hala "1" ise: Gerçek bir insan basımı olarak kabul edilir ve işlem başlatılır (`dongu` fazına geçilir).
+  * Sinyal "0" olmuşsa: Elektriksel bir parazit veya yanlışlıkla dokunma sayılarak reddedilir ve sistem başa döner.
+* **Sonuç:** Bu mimari sayesinde buton sekmesinden kaynaklanan sahte tetiklemeler tamamen engellenmiş ve işlemci gücü boşa harcanmamıştır.
+
+### 2. Bağımsız Bekçi Köpeği (IWDG) ile Çökme Koruması
 Sistemlerin kilitlenmesi durumunda kendi kendini kurtarabilmesi için IWDG donanımı aktif edilmiştir. 
 * Normal çalışma durumunda ana döngü sürekli olarak `HAL_IWDG_Refresh()` fonksiyonunu çağırarak Watchdog sayacını sıfırlar ("köpeği besler").
-* İşlemci beklenmedik bir sonsuz döngüye (`while(1)`) girerse (bu projede buton ile simüle edilmiştir), Watchdog beslenemez ve süre dolduğunda mikrodenetleyiciye donanımsal bir **Reset** atarak sistemi tekrar hayata döndürür.
-
-### 2. Durum Makinesi ile Yazılımsal Debounce (Sıçrama Önleme)
-Mekanik butonların içindeki elektriksel sekmeleri (ark/bouncing) filtrelemek için `HAL_Delay()` kullanmak yerine 3 aşamalı bir Durum Makinesi (State Machine) tasarlanmıştır:
-* **İlk Temas (`butona_basidimi`):** Sinyal ilk geldiğinde zaman damgası alınır.
-* **Filtreleme Süresi (`ne_kadar_basildi`):** Tam 50 milisaniye beklenir. Eğer 50ms sonunda sinyal hala aktifse, bu bir "gerçek basım" olarak kabul edilir. Sinyal kesilmişse gürültü (parazit) sayılarak reddedilir.
-* Bu sayede sahte tetiklemelerin önüne geçilmiş ve endüstriyel standartlarda buton okuması sağlanmıştır.
+* İşlemci beklenmedik bir sonsuz döngüye (`while(1)`) girerse (bu projede geçerli bir buton basımı ile simüle edilmiştir), Watchdog beslenemez ve süre dolduğunda mikrodenetleyiciye donanımsal bir **Reset** atarak sistemi tekrar hayata döndürür.
 
 ### 3. Engellemesiz (Non-Blocking) Zaman Yönetimi
 Ana çalışma döngüsünde hiçbir bekleme komutu yoktur. LED'in her 500ms'de bir yanıp sönmesi (Heartbeat) işlemi, işlemciyi durdurmayan `HAL_GetTick()` fonksiyonu ile aradaki fark (`anliksan - lson >= laveraj`) hesaplanarak gerçekleştirilir.
@@ -24,7 +27,7 @@ Ana çalışma döngüsünde hiçbir bekleme komutu yoktur. LED'in her 500ms'de 
 
 1. **Başlangıç Animasyonu:** Sistem ilk açıldığında veya resetlendiğinde, sistemin hayatta olduğunu bildirmek için bir LED 100ms aralıklarla çok hızlı bir şekilde 5 kez yanıp söner.
 2. **Kalp Atışı (Heartbeat):** Animasyon bitince LED yarım saniyede bir düzenli olarak yanıp sönmeye başlar ve IWDG sürekli beslenir.
-3. **Tuzağa Düşme (Crash Simulation):** Kullanıcı butona 50 milisaniyeden uzun süre bastığında (Debounce filtresini geçip), kod bilerek yazılmış bir boş sonsuz döngüye (`while(1){}`) hapsolur.
+3. **Tuzağa Düşme (Crash Simulation):** Kullanıcı butona basıp 50ms'lik Debounce filtresini başarıyla geçtiğinde, kod bilerek yazılmış bir boş sonsuz döngüye (`case dongu: while(1){}`) hapsolur.
 4. **Kurtarma (Recovery):** İşlemci sonsuz döngüye girdiği için Heartbeat durur ve IWDG beslenemez. Watchdog sayacı sıfıra ulaştığında donanıma reset atar. Kullanıcı, 1. adımdaki "5 hızlı blink" animasyonunu tekrar görerek sistemin başarıyla kurtarıldığını anlar.
 
 ## 📌 Pin Konfigürasyonu
